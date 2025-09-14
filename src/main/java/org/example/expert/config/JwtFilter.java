@@ -1,24 +1,34 @@
 package org.example.expert.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
-import jakarta.servlet.FilterConfig;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.expert.domain.common.dto.AuthUser;
 import org.example.expert.domain.user.enums.UserRole;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
 public class JwtFilter implements Filter {
 
     private final JwtUtil jwtUtil;
+    private final ObjectMapper objectMapper;
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -32,10 +42,6 @@ public class JwtFilter implements Filter {
 
         String url = httpRequest.getRequestURI();
 
-        if (url.startsWith("/auth")) {
-            chain.doFilter(request, response);
-            return;
-        }
 
         String bearerJwt = httpRequest.getHeader("Authorization");
 
@@ -54,23 +60,8 @@ public class JwtFilter implements Filter {
                 httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "잘못된 JWT 토큰입니다.");
                 return;
             }
+            setAuthentication(claims);
 
-            UserRole userRole = UserRole.valueOf(claims.get("userRole", String.class));
-
-            httpRequest.setAttribute("userId", Long.parseLong(claims.getSubject()));
-            httpRequest.setAttribute("email", claims.get("email"));
-            httpRequest.setAttribute("nickname", claims.get("nickname")); // lv1-2 닉네임 추가
-            httpRequest.setAttribute("userRole", claims.get("userRole"));
-
-            if (url.startsWith("/admin")) {
-                // 관리자 권한이 없는 경우 403을 반환합니다.
-                if (!UserRole.ADMIN.equals(userRole)) {
-                    httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "관리자 권한이 없습니다.");
-                    return;
-                }
-                chain.doFilter(request, response);
-                return;
-            }
 
             chain.doFilter(request, response);
         } catch (SecurityException | MalformedJwtException e) {
@@ -91,5 +82,37 @@ public class JwtFilter implements Filter {
     @Override
     public void destroy() {
         Filter.super.destroy();
+    }
+
+    // JWT Claims에서 사용자 정보를 추출하여 Spring Security의 인증 정보 설정
+    private void setAuthentication(Claims claims) {
+        // JWT의 subject claim에서 사용자 ID 추출 (subject는 JWT 표준 claim)
+        Long userId = Long.valueOf(claims.getSubject());
+        // 커스텀 claim에서 이메일 정보 추출
+        String email = claims.get("email", String.class);
+
+        String nickname = claims.get("nickname", String.class);
+
+        // 커스텀 claim에서 사용자 권한 정보를 추출하여 enum으로 변환
+        UserRole userRole = UserRole.of(claims.get("userRole", String.class));
+
+        // 추출한 정보로 인증된 사용자 객체 생성
+        AuthUser authUser = new AuthUser(userId, email, nickname, userRole);
+        // Spring Security가 인식할 수 있는 Authentication 객체 생성
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + userRole.name());
+        List<SimpleGrantedAuthority> authorities = List.of(authority);
+        Authentication authenticationToken = new UsernamePasswordAuthenticationToken(authUser, null, authorities);
+        // SecurityContext에 인증 정보 저장 - 이후 @AuthenticationPrincipal로 접근 가능
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json;charset=UTF-8");
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("status", status.name());
+        errorResponse.put("code", status.value());
+        errorResponse.put("message", message);
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }
