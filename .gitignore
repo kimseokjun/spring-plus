@@ -38,3 +38,8 @@ out/
 
 ### properties ###
 *.properties
+
+
+### QueryDSL ###
+/src/main/generated/
+/src/test/generated/
