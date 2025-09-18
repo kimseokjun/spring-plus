@@ -37,11 +37,19 @@ public class JwtFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
+        log.info("JwtFilter invoked, url={}", httpRequest.getRequestURI());
 
         String url = httpRequest.getRequestURI();
 
+
+        if (url.startsWith("/auth")) {
+            System.out.println("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+            chain.doFilter(request, response); // 그냥 통과시킴
+            return;
+        }
 
         String bearerJwt = httpRequest.getHeader("Authorization");
 

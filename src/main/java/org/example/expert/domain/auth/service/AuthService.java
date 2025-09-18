@@ -27,18 +27,18 @@ public class AuthService {
     @Transactional
     public SignupResponse signup(SignupRequest signupRequest) {
 
-        if (userRepository.existsByEmail(signupRequest.getEmail())) {
+        if (userRepository.existsByEmail(signupRequest.email())) {
             throw new InvalidRequestException("이미 존재하는 이메일입니다.");
         }
 
-        String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
+        String encodedPassword = passwordEncoder.encode(signupRequest.password());
 
-        UserRole userRole = UserRole.of(signupRequest.getUserRole());
+        UserRole userRole = UserRole.of(signupRequest.userRole());
 
         User newUser = new User(
-                signupRequest.getEmail(),
+                signupRequest.email(),
                 encodedPassword,
-                signupRequest.getNickname(),
+                signupRequest.nickname(),
                 userRole
         );
         User savedUser = userRepository.save(newUser);

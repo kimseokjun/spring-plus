@@ -12,7 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity //이거 뭐지
@@ -46,7 +46,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/activities").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtFilter(jwtUtil, new ObjectMapper()), SecurityContextHolderAwareRequestFilter.class)
+                .addFilterBefore(new JwtFilter(jwtUtil, new ObjectMapper()), UsernamePasswordAuthenticationFilter.class)
+
 
                 .build();
     }

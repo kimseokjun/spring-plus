@@ -12,6 +12,12 @@ spring:
       hibernate:
         show_sql: true
         format_sql: true
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.validation: DEBUG
+
 jwt:
   secret:
     key: mySuperSecretKeyForJwtTokenGeneration123456
