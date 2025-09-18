@@ -1,6 +1,5 @@
 package org.example.expert.config;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableWebSecurity //이거 뭐지
+@EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -29,12 +28,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
+                // CSRF 비활성화 (JWT 사용시 필요)
+                .csrf(AbstractHttpConfigurer::disable)
+
                 // JWT 사용 시 불필요한 기능들 비활성화
-                .formLogin(AbstractHttpConfigurer::disable)      // [SSR] 서버가 로그인 HTML 폼 렌더링
-                .anonymous(AbstractHttpConfigurer::disable)      // 미인증 사용자를 익명으로 처리
-                .httpBasic(AbstractHttpConfigurer::disable)      // [SSR] 인증 팝업
-                .logout(AbstractHttpConfigurer::disable)         // [SSR] 서버가 세션 무효화 후 리다이렉트
-                .rememberMe(AbstractHttpConfigurer::disable)     // 서버가 쿠키 발급하여 자동 로그인
+                .formLogin(AbstractHttpConfigurer::disable)
+                .anonymous(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .rememberMe(AbstractHttpConfigurer::disable)
 
                 // 세션 사용 안함 (JWT 사용)
                 .sessionManagement(session ->
@@ -46,8 +48,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/activities").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtFilter(jwtUtil, new ObjectMapper()), UsernamePasswordAuthenticationFilter.class)
 
+                // 필터 순서 변경: UsernamePasswordAuthenticationFilter 앞에 배치
+                .addFilterBefore(new JwtFilter(jwtUtil, new ObjectMapper()),
+                        UsernamePasswordAuthenticationFilter.class)
 
                 .build();
     }
