@@ -44,6 +44,7 @@ public class SecurityConfig {
 
                 // 요청별 인증 설정
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/activities").hasRole("ADMIN")
                         .anyRequest().authenticated()
