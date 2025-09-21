@@ -43,3 +43,7 @@ out/
 ### QueryDSL ###
 /src/main/generated/
 /src/test/generated/
+
+### yml files ###
+application-dev.yml
+application-local.yml
