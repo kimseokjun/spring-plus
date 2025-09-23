@@ -109,7 +109,9 @@ public class JwtFilter implements Filter {
         // Spring Security가 인식할 수 있는 Authentication 객체 생성
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + userRole.name());
         List<SimpleGrantedAuthority> authorities = List.of(authority);
+
         Authentication authenticationToken = new UsernamePasswordAuthenticationToken(authUser, null, authorities);
+
         // SecurityContext에 인증 정보 저장 - 이후 @AuthenticationPrincipal로 접근 가능
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
     }
